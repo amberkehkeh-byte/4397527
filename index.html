@@ -2,34 +2,67 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>安親班點名系統</title>
   <style>
-    body { font-family: "Microsoft JhengHei", sans-serif; margin: 20px; }
-    h1 { text-align: center; }
-    .summary { font-size: 16px; font-weight: bold; margin: 15px 0; text-align: center; }
-    .class-section { margin-bottom: 40px; }
-    .students { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-    .student {
-      padding: 8px 12px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      cursor: pointer;
-      user-select: none;
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 10px;
+      font-size: 18px;
     }
-    .present { background-color: #c8f7c5; }   /* 到課 */
-    .sick { background-color: #f8c5c5; color: red; } /* 病假 */
-    .absent { background-color: #c5d8f8; color: blue; } /* 固定不到 */
-    .stats { font-size: 14px; margin-top: 5px; }
+    h1 {
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .class-section {
+      margin-bottom: 30px;
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .class-section h2 {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+    .student {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 10px 0;
+      font-size: 18px;
+    }
+    .student label {
+      flex: 1;
+    }
+    .student button {
+      font-size: 20px;
+      padding: 10px 16px;
+      margin-left: 8px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+    .present { background-color: #4CAF50; color: white; }
+    .absent { background-color: #FF5252; color: white; }
+    .fixed { background-color: #2196F3; color: white; }
+    .status {
+      margin-left: 10px;
+      font-weight: bold;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
   <h1>安親班點名系統</h1>
 
-  <div class="summary" id="summary">統計更新中...</div>
   <div id="classes"></div>
 
   <script>
-    const classLists = {
+    const classes = {
       "A班#14": [
         "202邱暄玟","202周永哲(固定一四不到)","205李畇希","205邱苡禎","207莊瑀澤",
         "209廖威盛","210戴云安","601沈可若","604周毓瑭(固定一二四不到)","606黃梓涵",
@@ -45,7 +78,7 @@
         "101徐于喬","103周承飛","105劉宇宸","106陳郁璇","107羅詰渝","109郭東旭",
         "110楊氏玉瑄","301盧薇安(固定二四不到)","302侯凱馨","302簡彥綸","305羅翔靖",
         "305陳立群","306涂恩頤","307吳宇勛","307趙芸歆","308呂芷芸","309莊瑀柔",
-        "310林子櫰","310黃晨恩","黃芷妤"
+        "310林子櫰","310黃晨恩"
       ],
       "D班": [
         "402趙宥森","404黃梓玉","405吳添森","405劉宇峻","406姜季珊","406蔡馥蔓",
@@ -53,38 +86,49 @@
       ]
     };
 
-    const container = document.getElementById("classes");
-    const summaryDiv = document.getElementById("summary");
-
-    function updateStats(section) {
-      const students = section.querySelectorAll(".student");
-      let present = 0, sick = 0, absent = 0;
-      students.forEach(div => {
-        if (div.classList.contains("present")) present++;
-        else if (div.classList.contains("sick")) sick++;
-        else if (div.classList.contains("absent")) absent++;
-      });
-      const total = students.length;
-      section.querySelector(".stats").innerText =
-        `✅ 到課: ${present}　🤒 病假: ${sick}　🚫 固定不到: ${absent}　👥 總人數: ${total}`;
+    function render() {
+      const container = document.getElementById("classes");
+      container.innerHTML = "";
+      for (const [cls, students] of Object.entries(classes)) {
+        const section = document.createElement("div");
+        section.className = "class-section";
+        section.innerHTML = `<h2>${cls}</h2>`;
+        
+        students.forEach(name => {
+          const studentDiv = document.createElement("div");
+          studentDiv.className = "student";
+          studentDiv.innerHTML = `
+            <label>${name}</label>
+            <div>
+              <button class="present" onclick="mark(this,'到')">到</button>
+              <button class="absent" onclick="mark(this,'病假')">病假</button>
+              <button class="fixed" onclick="mark(this,'固定不到')">固定不到</button>
+              <span class="status"></span>
+            </div>
+          `;
+          section.appendChild(studentDiv);
+        });
+        container.appendChild(section);
+      }
     }
 
-    function updateSummary() {
-      const allStudents = document.querySelectorAll(".student");
-      let present = 0, sick = 0, absent = 0;
-      allStudents.forEach(div => {
-        if (div.classList.contains("present")) present++;
-        else if (div.classList.contains("sick")) sick++;
-        else if (div.classList.contains("absent")) absent++;
-      });
-      const total = allStudents.length;
-      summaryDiv.innerText =
-        `📊 全校總統計 → ✅ 到課: ${present}　🤒 病假: ${sick}　🚫 固定不到: ${absent}　👥 總人數: ${total}`;
+    function mark(btn, status) {
+      const statusSpan = btn.parentElement.querySelector(".status");
+      statusSpan.textContent = status;
+      if (status === "病假") {
+        statusSpan.style.color = "red";
+      } else if (status === "固定不到") {
+        statusSpan.style.color = "blue";
+      } else {
+        statusSpan.style.color = "green";
+      }
     }
 
-    Object.entries(classLists).forEach(([className, students]) => {
-      const section = document.createElement("div");
-      section.className = "class-section";
+    render();
+  </script>
+</body>
+</html>
+
       section.innerHTML = `<h2>${className}</h2>`;
 
       const studentDiv = document.createElement("div");
